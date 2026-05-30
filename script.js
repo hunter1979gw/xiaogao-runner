@@ -1,362 +1,260 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // ===== 打卡系统 =====
-  const STORAGE_KEY = 'xiaogao_checkins';
-  const OWNER_NAME = '想PB的小高';
+  const STORAGE_KEY = 'xiaogao_run_checkins_v2';
+  const OWNER = '想PB的小高';
 
-  const sampleData = [
-    { name: OWNER_NAME, date: '2026-05-25', km: 5.0, isOwner: true },
-    { name: OWNER_NAME, date: '2026-05-26', km: 8.0, isOwner: true },
-    { name: OWNER_NAME, date: '2026-05-27', km: 3.5, isOwner: true },
-    { name: OWNER_NAME, date: '2026-05-28', km: 10.0, isOwner: true },
-    { name: OWNER_NAME, date: '2026-05-29', km: 6.0, isOwner: true },
-    { name: '跑步小白', date: '2026-05-26', km: 3.0, isOwner: false },
-    { name: '奔跑的风', date: '2026-05-27', km: 5.5, isOwner: false },
-    { name: '追梦人', date: '2026-05-28', km: 7.0, isOwner: false },
-    { name: '跑步小白', date: '2026-05-29', km: 4.2, isOwner: false },
-    { name: '大正粉丝', date: '2026-05-29', km: 6.8, isOwner: false },
-    { name: OWNER_NAME, date: '2026-05-30', km: 5.5, isOwner: true },
+  const seed = [
+    { name: OWNER, date: '2026-05-24', km: 6.0, isOwner: true },
+    { name: OWNER, date: '2026-05-25', km: 8.5, isOwner: true },
+    { name: OWNER, date: '2026-05-26', km: 5.0, isOwner: true },
+    { name: OWNER, date: '2026-05-27', km: 12.0, isOwner: true },
+    { name: OWNER, date: '2026-05-28', km: 4.5, isOwner: true },
+    { name: OWNER, date: '2026-05-29', km: 8.0, isOwner: true },
+    { name: OWNER, date: '2026-05-30', km: 6.5, isOwner: true },
+    { name: '奔跑的风', date: '2026-05-25', km: 5.0, isOwner: false },
+    { name: '追梦人', date: '2026-05-26', km: 8.0, isOwner: false },
+    { name: '跑步小白', date: '2026-05-27', km: 3.5, isOwner: false },
+    { name: '大正粉丝', date: '2026-05-28', km: 10.0, isOwner: false },
+    { name: '奔跑的风', date: '2026-05-29', km: 6.5, isOwner: false },
+    { name: '跑步小白', date: '2026-05-30', km: 4.0, isOwner: false },
   ];
 
-  function loadCheckins() {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
-      return [...sampleData];
-    }
-    return JSON.parse(stored);
-  }
+  let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || seed;
 
-  function saveCheckins(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }
+  const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
-  let checkins = loadCheckins();
+  // 默认今天
+  document.getElementById('checkinDate').value = new Date().toISOString().split('T')[0];
 
-  // 设置默认日期为今天
-  const dateInput = document.getElementById('checkinDate');
-  dateInput.value = new Date().toISOString().split('T')[0];
-
-  // 打卡提交
-  document.getElementById('btnCheckin').addEventListener('click', () => {
-    const nameInput = document.getElementById('checkinName');
-    const kmInput = document.getElementById('checkinKm');
-    const isOwner = document.getElementById('isOwner').checked;
-    const name = isOwner ? OWNER_NAME : (nameInput.value.trim() || '匿名跑者');
-    const date = dateInput.value;
-    const km = parseFloat(kmInput.value);
-
-    if (!date || !km || km <= 0) {
-      shakeBtn();
-      return;
-    }
-
-    checkins.push({ name, date, km, isOwner });
-    saveCheckins(checkins);
-
-    // 成功动画
-    const btn = document.getElementById('btnCheckin');
-    btn.classList.add('success');
-    btn.innerHTML = '<span>✅ 打卡成功！</span>';
-    setTimeout(() => {
-      btn.classList.remove('success');
-      btn.innerHTML = '<span>🏃 打卡签到</span>';
-    }, 1500);
-
-    kmInput.value = '';
-    renderCheckinData();
-  });
-
-  function shakeBtn() {
-    const btn = document.getElementById('btnCheckin');
-    btn.style.animation = 'shake 0.4s ease';
-    setTimeout(() => btn.style.animation = '', 400);
-  }
-
-  // 切换博主模式
-  document.getElementById('isOwner').addEventListener('change', function() {
+  // 博主模式切换
+  document.getElementById('isOwner').addEventListener('change', function () {
     const nameInput = document.getElementById('checkinName');
     if (this.checked) {
-      nameInput.value = OWNER_NAME;
+      nameInput.value = OWNER;
       nameInput.disabled = true;
-      nameInput.style.opacity = '0.5';
     } else {
       nameInput.value = '';
       nameInput.disabled = false;
-      nameInput.style.opacity = '1';
     }
   });
 
-  function renderCheckinData() {
-    const totalKm = checkins.reduce((sum, c) => sum + c.km, 0);
-    const persons = new Set(checkins.map(c => c.name)).size;
-    const today = new Date().toISOString().split('T')[0];
+  // 打卡提交
+  document.getElementById('btnCheckin').addEventListener('click', () => {
+    const name = document.getElementById('isOwner').checked
+      ? OWNER
+      : (document.getElementById('checkinName').value.trim() || '匿名跑者');
+    const date = document.getElementById('checkinDate').value;
+    const km = parseFloat(document.getElementById('checkinKm').value);
+    const isOwner = document.getElementById('isOwner').checked;
 
-    // 计算连续天数
-    const ownerDates = [...new Set(checkins.filter(c => c.isOwner).map(c => c.date))].sort().reverse();
-    let streak = 0;
-    let checkDate = new Date();
-    for (let i = 0; i < 365; i++) {
-      const ds = checkDate.toISOString().split('T')[0];
-      if (ownerDates.includes(ds)) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else if (i === 0) {
-        checkDate.setDate(checkDate.getDate() - 1);
-        continue;
-      } else {
-        break;
-      }
+    if (!date || !km || km <= 0) {
+      const btn = document.getElementById('btnCheckin');
+      btn.style.animation = 'shake .4s ease';
+      setTimeout(() => btn.style.animation = '', 400);
+      return;
     }
 
-    // 动画计数器
-    animateCounter('totalKm', totalKm, 1);
-    animateCounter('checkinCount', checkins.length, 0);
-    animateCounter('personCount', persons, 0);
-    animateCounter('streakDays', streak, 0);
+    data.push({ name, date, km, isOwner });
+    save();
+    document.getElementById('checkinKm').value = '';
 
-    // 环形进度条 (目标1000km)
-    const progress = Math.min(totalKm / 1000, 1);
-    const circumference = 553;
-    const offset = circumference * (1 - progress);
-    document.querySelector('.track-progress').style.strokeDashoffset = offset;
+    const btn = document.getElementById('btnCheckin');
+    btn.classList.add('success');
+    btn.textContent = '✅ 打卡成功！';
+    setTimeout(() => {
+      btn.classList.remove('success');
+      btn.textContent = '打卡签到 →';
+    }, 1500);
 
-    // 柱状图
+    render();
+  });
+
+  function render() {
+    const total = data.reduce((s, r) => s + r.km, 0);
+    const persons = new Set(data.map(r => r.name)).size;
+    const checkinCount = data.length;
+
+    // 连续天数（小高）
+    const ownerDates = [...new Set(data.filter(r => r.isOwner).map(r => r.date))].sort().reverse();
+    let streak = 0;
+    const d = new Date();
+    for (let i = 0; i < 365; i++) {
+      const ds = d.toISOString().split('T')[0];
+      if (ownerDates.includes(ds)) { streak++; d.setDate(d.getDate() - 1); }
+      else if (i === 0) { d.setDate(d.getDate() - 1); }
+      else break;
+    }
+
+    // 数字动画
+    animateNum('totalKmDisplay', total, 1);
+    animateNum('checkinCount', checkinCount, 0);
+    animateNum('personCount', persons, 0);
+    animateNum('streakDays', streak, 0);
+
+    // 跑道进度
+    const pct = Math.min(total / 1000, 1);
+    const totalLen = 1320;
+    const offset = totalLen * (1 - pct);
+    document.querySelector('#trackProgress').style.strokeDashoffset = offset;
+    document.getElementById('trackPct').textContent = (pct * 100).toFixed(1) + '%';
+
+    // 跑者位置（沿跑道SVG路径）
+    const runner = document.getElementById('runnerDot');
+    const emojiEl = document.getElementById('runnerEmoji');
+    // 简化：线性映射到矩形跑道位置
+    const angle = pct * 2 * Math.PI;
+    const cx = 300 + 270 * Math.cos(angle - Math.PI / 2);
+    const cy = 100 + 80 * Math.sin(angle - Math.PI / 2);
+    runner.setAttribute('cx', cx);
+    runner.setAttribute('cy', cy);
+    emojiEl.setAttribute('x', cx - 7);
+    emojiEl.setAttribute('y', cy + 5);
+
     renderChart();
-
-    // 记录列表
     renderRecords();
   }
 
-  function animateCounter(id, target, decimals) {
+  function animateNum(id, target, dec) {
     const el = document.getElementById(id);
-    const duration = 1200;
     const start = performance.now();
-    const startVal = parseFloat(el.textContent) || 0;
-
-    function update(now) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = startVal + (target - startVal) * eased;
-      el.textContent = current.toFixed(decimals);
-      if (progress < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
+    const from = parseFloat(el.textContent) || 0;
+    const dur = 1200;
+    const tick = now => {
+      const p = Math.min((now - start) / dur, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      el.textContent = (from + (target - from) * ease).toFixed(dec);
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = target.toFixed(dec);
+    };
+    requestAnimationFrame(tick);
   }
 
   function renderChart() {
-    const container = document.getElementById('chartBars');
+    const container = document.getElementById('chartContainer');
     container.innerHTML = '';
 
     const days = [];
     const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push({ date: d.toISOString().split('T')[0], dayName: dayNames[d.getDay()] });
+      const d = new Date(); d.setDate(d.getDate() - i);
+      days.push({ date: d.toISOString().split('T')[0], label: dayNames[d.getDay()] });
     }
 
-    let maxKm = 0;
-    const dayData = days.map(d => {
-      const ownerKm = checkins.filter(c => c.date === d.date && c.isOwner).reduce((s, c) => s + c.km, 0);
-      const otherKm = checkins.filter(c => c.date === d.date && !c.isOwner).reduce((s, c) => s + c.km, 0);
+    const maxKm = Math.max(...days.map(d => {
+      const ownerKm = data.filter(r => r.date === d.date && r.isOwner).reduce((s, r) => s + r.km, 0);
+      const otherKm = data.filter(r => r.date === d.date && !r.isOwner).reduce((s, r) => s + r.km, 0);
+      return ownerKm + otherKm;
+    }), 1);
+
+    days.forEach((d, i) => {
+      const ownerKm = data.filter(r => r.date === d.date && r.isOwner).reduce((s, r) => s + r.km, 0);
+      const otherKm = data.filter(r => r.date === d.date && !r.isOwner).reduce((s, r) => s + r.km, 0);
       const total = ownerKm + otherKm;
-      if (total > maxKm) maxKm = total;
-      return { ...d, ownerKm, otherKm, total };
-    });
+      const totalH = (total / maxKm) * 76;
+      const ownerH = ownerKm ? (ownerKm / total) * totalH : 0;
+      const otherH = otherKm ? (otherKm / total) * totalH : 0;
 
-    dayData.forEach((d, i) => {
-      const group = document.createElement('div');
-      group.className = 'bar-group';
+      const wrap = document.createElement('div');
+      wrap.className = 'bar-wrap';
 
-      const barWrapper = document.createElement('div');
-      barWrapper.style.cssText = 'width:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex:1;position:relative;';
+      const valEl = document.createElement('div');
+      valEl.className = 'bar-val';
+      valEl.textContent = total > 0 ? total.toFixed(1) : '';
+      wrap.appendChild(valEl);
 
-      if (d.total > 0) {
-        const totalH = maxKm > 0 ? (d.total / maxKm) * 80 : 0;
+      const stack = document.createElement('div');
+      stack.className = 'bar-stack';
+      stack.style.height = totalH + 'px';
 
-        if (d.otherKm > 0) {
-          const otherBar = document.createElement('div');
-          otherBar.className = 'bar other';
-          const otherH = (d.otherKm / d.total) * totalH;
-          otherBar.style.height = '0%';
-          setTimeout(() => { otherBar.style.height = otherH + '%'; }, i * 100);
-          barWrapper.appendChild(otherBar);
-        }
-
-        if (d.ownerKm > 0) {
-          const ownerBar = document.createElement('div');
-          ownerBar.className = 'bar owner';
-          const ownerH = (d.ownerKm / d.total) * totalH;
-          ownerBar.style.height = '0%';
-          const valEl = document.createElement('div');
-          valEl.className = 'bar-val';
-          valEl.textContent = d.total.toFixed(1);
-          ownerBar.appendChild(valEl);
-          setTimeout(() => { ownerBar.style.height = ownerH + '%'; }, i * 100 + 50);
-          barWrapper.appendChild(ownerBar);
-        }
-
-        if (d.ownerKm === 0 && d.otherKm > 0) {
-          const lastBar = barWrapper.lastChild;
-          const valEl = document.createElement('div');
-          valEl.className = 'bar-val';
-          valEl.textContent = d.total.toFixed(1);
-          lastBar.appendChild(valEl);
-        }
+      if (otherKm > 0) {
+        const b = document.createElement('div');
+        b.className = 'bar-seg others-bar';
+        b.style.height = '0px';
+        stack.appendChild(b);
+        setTimeout(() => b.style.height = otherH + 'px', i * 80);
+      }
+      if (ownerKm > 0) {
+        const b = document.createElement('div');
+        b.className = 'bar-seg owner-bar';
+        b.style.height = '0px';
+        stack.appendChild(b);
+        setTimeout(() => b.style.height = ownerH + 'px', i * 80 + 40);
       }
 
-      group.appendChild(barWrapper);
+      wrap.appendChild(stack);
 
-      const dayLabel = document.createElement('div');
-      dayLabel.className = 'bar-day';
-      dayLabel.textContent = d.dayName;
-      group.appendChild(dayLabel);
+      const dayEl = document.createElement('div');
+      dayEl.className = 'bar-day';
+      dayEl.textContent = d.label;
+      wrap.appendChild(dayEl);
 
-      container.appendChild(group);
+      container.appendChild(wrap);
     });
   }
 
   function renderRecords() {
-    const container = document.getElementById('recordsList');
+    const list = document.getElementById('recordsList');
     const countEl = document.getElementById('recordCount');
-    countEl.textContent = checkins.length;
+    countEl.textContent = data.length;
 
-    const sorted = [...checkins].sort((a, b) => {
+    const sorted = [...data].sort((a, b) => {
       if (a.date !== b.date) return b.date.localeCompare(a.date);
       return b.km - a.km;
     });
 
     if (sorted.length === 0) {
-      container.innerHTML = '<div class="empty-records">还没有打卡记录，快来第一个签到吧！🏃‍♀️</div>';
+      list.innerHTML = '<p class="empty-tip">还没有打卡记录，快来第一个签到！</p>';
       return;
     }
 
-    container.innerHTML = sorted.map(record => {
-      const cls = record.isOwner ? 'record-item owner' : 'record-item';
-      const emoji = record.isOwner ? '⭐' : '🏃';
+    list.innerHTML = sorted.map(r => {
+      const cls = r.isOwner ? 'record-item owner-record' : 'record-item';
+      const em = r.isOwner ? '⭐' : '🏃';
       return `
         <div class="${cls}">
-          <div class="record-avatar">${emoji}</div>
-          <div class="record-detail">
-            <div class="record-name">${escapeHtml(record.name)}</div>
-            <div class="record-date-info">${record.date}</div>
+          <div class="record-avatar">${em}</div>
+          <div style="flex:1;min-width:0">
+            <div class="record-name">${escHtml(r.name)}</div>
+            <div class="record-date">${r.date}</div>
           </div>
-          <div class="record-km">${record.km.toFixed(1)} <span class="record-unit">km</span></div>
+          <div>
+            <span class="record-km-val">${r.km.toFixed(1)}</span>
+            <span class="record-km-unit"> km</span>
+          </div>
         </div>
       `;
     }).join('');
   }
 
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+  function escHtml(t) {
+    const d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
   }
 
-  // 初始化打卡数据
-  renderCheckinData();
-
-  // ===== Tab切换 =====
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      const target = tab.dataset.tab;
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      document.querySelectorAll('.tab-content').forEach(c => {
-        c.classList.remove('active');
-        if (c.id === `tab-${target}`) c.classList.add('active');
-      });
-    });
-  });
-
-  // ===== 关注按钮 =====
-  let followed = false;
-  document.querySelector('.btn-follow').addEventListener('click', function() {
-    followed = !followed;
-    if (followed) {
-      this.innerHTML = '<span>✓ 已关注</span>';
-      this.style.background = 'var(--bg-card)';
-      this.style.border = '1px solid var(--border)';
-    } else {
-      this.innerHTML = '<span>+ 关注</span>';
-      this.style.background = 'var(--gradient)';
-      this.style.border = 'none';
-    }
-  });
-
-  // ===== 数字动画 =====
-  const statObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const display = el.dataset.display;
-        if (display) {
-          animateToDisplay(el, display);
-        } else {
-          const target = parseInt(el.dataset.target) || 0;
-          animateStatNum(el, target);
-        }
-        statObserver.unobserve(el);
-      }
-    });
-  }, { threshold: 0.5 });
-
-  document.querySelectorAll('.stat-num[data-target]').forEach(el => statObserver.observe(el));
-
-  function animateStatNum(el, target) {
-    const duration = 1200;
-    const start = performance.now();
-    function update(now) {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      el.textContent = Math.round(target * eased);
-      if (progress < 1) requestAnimationFrame(update);
-      else el.textContent = target;
-    }
-    requestAnimationFrame(update);
-  }
-
-  function animateToDisplay(el, display) {
-    const duration = 1000;
-    const start = performance.now();
-    const chars = display.split('');
-    function update(now) {
-      const progress = Math.min((now - start) / duration, 1);
-      if (progress < 1) {
-        const revealed = Math.floor(progress * chars.length);
-        el.textContent = chars.slice(0, revealed + 1).join('');
-        requestAnimationFrame(update);
-      } else {
-        el.textContent = display;
-      }
-    }
-    requestAnimationFrame(update);
-  }
+  render();
 
   // ===== 入场动画 =====
-  const animObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        animObserver.unobserve(entry.target);
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    .reveal { opacity:0; transform:translateY(24px); transition:opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+  `;
+  document.head.appendChild(style);
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        setTimeout(() => e.target.classList.add('visible'), i * 60);
+        obs.unobserve(e.target);
       }
     });
   }, { threshold: 0.1 });
 
-  document.querySelectorAll('.highlight-card, .gear-card, .daily-card, .quote-card, .journey-card').forEach(el => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(16px)';
-    el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-    animObserver.observe(el);
+  document.querySelectorAll('.video-card, .gallery-item, .quote-big, .checkin-form').forEach(el => {
+    el.classList.add('reveal');
+    obs.observe(el);
   });
-
-  // shake动画样式
-  const style = document.createElement('style');
-  style.textContent = `
-    .visible { opacity: 1 !important; transform: translateY(0) !important; }
-    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
-  `;
-  document.head.appendChild(style);
 });
