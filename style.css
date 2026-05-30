@@ -9,8 +9,8 @@
   --red-warm: #ff7c3c;
   --green: #00e676;
   --gradient: linear-gradient(135deg, #ff3c5f, #ff7c3c);
-  --font-en: 'Space Grotesk', sans-serif;
-  --font-cn: 'Noto Sans SC', sans-serif;
+  --font-en: 'Space Grotesk', 'DIN Alternate', 'Arial Black', 'Helvetica Neue', sans-serif;
+  --font-cn: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
 }
 html { font-size: 16px; scroll-behavior: smooth; }
 body { background: var(--black); color: var(--white); font-family: var(--font-cn); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
